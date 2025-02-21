@@ -1,10 +1,95 @@
 # Store Sales - Time Series Forecasting
-### Using machine learning to predict grocery sales
+### Makine öğrenmesi kullanarak satış tahmini
 
 
-## Purpose
+## Amaç
 
-![image](https://github.com/sonielyy/shein_scraping_project/assets/71605453/c5b20b8a-9fff-4339-ae55-154df7a765bc)
+"Yarışmacılar, farklı mağazalarda satılan binlerce ürünün satış tahminlerini daha doğru bir şekilde yapmaya çalışacaklar. Modeliniz şu verileri içeren bir eğitim seti kullanarak eğitilecektir:
+
+- Tarih bilgileri
+- Mağaza ve ürün bilgileri
+- Promosyonlar
+- Gerçekleşen satışlar
+Bu yarışma, perakende sektöründeki talep tahminini iyileştirmeye yönelik ve özellikle zaman serisi analizine giriş yapmak isteyenler için iyi bir fırsattır."
+
+![image](https://github.com/user-attachments/assets/2741d035-6d44-4efd-967d-515faaa2976a)
+
+Bu, özellikle süpermarketler için kritik bir konu çünkü:
+
+Yanlış tahmin yapıldığında fazla ürün sipariş edilirse bozulmuş stoklar nedeniyle israf meydana gelir.
+Yetersiz sipariş verilirse, popüler ürünler hızla tükenerek hem müşteri memnuniyetsizliğine hem de satış kayıplarına yol açar.
+Mevcut geleneksel tahmin yöntemleri, genellikle veriye dayalı değildir ve otomatikleştirilmesi zordur. Bu tahmin sürecini geliştirmek, perakendecilere daha verimli stok yönetimi sağlayabilir.
+
+## Veri Hakkında
+
+1. train.csv (Eğitim Verisi)
+Bu dosya, modelinizi eğitmek için kullanacağınız asıl zaman serisi verilerini içerir.
+
+- date → Satışın gerçekleştiği tarih
+- store_nbr → Ürünün satıldığı mağazayı tanımlayan numara
+- family → Ürün kategorisini belirten etiket (örneğin, süt ürünleri, içecekler, temizlik ürünleri gibi)
+- sales → O gün satılan toplam ürün miktarı (Hedef değişken, tahmin edilmesi gereken değer)
+- onpromotion → O mağazada o gün promosyonda olan ürün sayısı
+
+Önemli noktalar:
+- sales (satışlar) sürekli bir değişkendir. Bazı ürünler kesirli birimlerde satılabildiği için (örneğin, 1.5 kg peynir) bu değişken tam sayı olmak zorunda değildir.
+onpromotion değişkeni, promosyonların satışlar üzerindeki etkisini analiz etmede kritik bir rol oynayabilir.
+
+2. test.csv (Test Verisi)
+Bu dosyada eğitim verisindekiyle aynı özellikler bulunur, ancak sales sütunu yoktur. Modelinizin bu verilerdeki satışları tahmin etmesi beklenir.
+
+Önemli noktalar:
+- Test setindeki tarihler, eğitim setinin son tarihinden sonraki 15 günü kapsar.
+- Modeliniz, önceki verileri kullanarak gelecekteki 15 günün satışlarını tahmin etmelidir.
+
+3. sample_submission.csv (Örnek Gönderim Dosyası)
+Bu dosya, Kaggle’a gönderilecek tahmin dosyanızın doğru formatta olup olmadığını görmek için bir örnektir.
+Burada id, test setindeki her satıra karşılık gelen benzersiz bir kimliktir. sales sütunu ise modelinizin tahmin ettiği satış değerlerini içermelidir.
+
+4. stores.csv (Mağaza Bilgileri)
+Bu dosya, her mağaza hakkında ek bilgiler içerir:
+
+- store_nbr → Mağaza kimliği (train.csv ve test.csv ile eşleşir)
+- city → Mağazanın bulunduğu şehir
+- state → Mağazanın bulunduğu eyalet/bölge
+- type → Mağaza tipi (büyük, küçük, hipermarket vs.)
+- cluster → Benzer özelliklere sahip mağazalar gruplara ayrılmıştır
+Mağazaların bulundukları şehir, eyalet ve tür gibi bilgileri kullanarak bölgesel ve yapısal etkileri analiz etmek mümkün olabilir.
+
+5. oil.csv (Günlük Petrol Fiyatları)
+Bu dosya, Ekvador’un ekonomi açısından petrol fiyatlarına bağımlı olması nedeniyle önemlidir.
+- date → Tarih
+- dcoilwtico → Günlük petrol fiyatı (WTI Crude Oil)
+
+Önemli noktalar:
+- Petrol fiyatlarındaki dalgalanmalar, ülkenin ekonomik durumunu etkileyerek insanların harcama alışkanlıklarını değiştirebilir.
+Özellikle ekonomik kriz veya petrol fiyatı düşüşleri market satışlarını etkileyebilir.
+
+6. holidays_events.csv (Resmi Tatiller ve Özel Günler)
+Bu dosya, belirli günlerin satışlar üzerindeki etkisini analiz etmek için önemli bilgiler içerir.
+
+- date → Tarih
+- type → Tatil veya etkinlik türü (Holiday, Event, Transfer, Bridge, Work Day, Additional)
+- locale → Tatilin geçerli olduğu yer (National = ülke genelinde, Regional = belirli bir bölgede, Local = belirli bir şehirde)
+- locale_name → Tatilin/etkinliğin gerçekleştiği bölge veya şehir adı
+- description → Tatilin veya etkinliğin adı
+- transferred → Eğer tatil başka bir güne ertelendi ise burada True yazar
+
+Önemli noktalar:
+- Resmi tatiller, süpermarket satışlarını artırabilir veya azaltabilir. Örneğin, Noel ve Yılbaşı öncesi günlerde satışlar zirve yaparken, bazı resmi tatillerde marketler kapalı olabilir.
+Transfer edilmiş tatiller, asıl tatilin farklı bir güne kaydırıldığını gösterir. Bu yüzden tatilin gerçekten hangi gün kutlandığını doğru analiz etmek gerekir.
+Bridge (Köprü Günleri), tatili hafta sonuna bağlayan ekstra tatil günleridir ve alışveriş davranışlarını değiştirebilir.
+
+Ek Notlar
+Maaş Günleri:
+- Ekvador’da devlet memurlarının maaşları her ayın 15’inde ve son gününde ödeniyor.
+- İnsanlar maaş aldıklarında daha fazla harcama yapma eğiliminde olabilir. Bu günlerde satışlarda artış beklenebilir.
+
+Deprem Etkisi (16 Nisan 2016 - Büyüklük 7.8)
+- Deprem, birkaç hafta boyunca süpermarket satışlarını büyük ölçüde etkilemiş olabilir.
+- İnsanlar su, konserve yiyecek ve temel ihtiyaç maddelerine yöneldiğinden, bazı ürün kategorilerinde olağan dışı satış artışları olabilir.
+
+Model geliştirirken bu anomalileri dikkate almak önemli olabilir.
 
 ## Tools
 
